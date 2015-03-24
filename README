@@ -1,0 +1,7 @@
+Generate test data set with R:
+
+`R CMD BATCH makeWeight.R`
+
+Run python script:
+
+`python deltaWeight.py weightFile.csv zzWeight.csv`
