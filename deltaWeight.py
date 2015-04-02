@@ -19,19 +19,22 @@ class Counter():
 def deltas(dates, weights):
     n = len(dates)
     ans = [None for j in range(n)]
-    for i in range(n):
-        dist = [abs((dates[j] - dates[i]).days) for j in range(n)]
-        myw = weights[:]
-        dist.pop(i)
-        myw.pop(i)
-        temp = sorted(zip(dist, myw), key=lambda x: x[0])
-        dd, dw = map(list, zip(*temp))
-        dd = [str(j) for j in dd[0:10]]
-        dw = [str(j) for j in dw[0:10]]
-        while len(dw) < 10:
-            dd.append('.')
-            dw.append('.')
-        ans[i] = dd + dw
+    if n > 1:
+        for i in range(n):
+            dist = [abs((dates[j] - dates[i]).days) for j in range(n)]
+            myw = weights[:]
+            dist.pop(i)
+            myw.pop(i)
+            temp = sorted(zip(dist, myw), key=lambda x: x[0])
+            dd, dw = map(list, zip(*temp))
+            dd = [str(j) for j in dd[0:10]]
+            dw = [str(j) for j in dw[0:10]]
+            while len(dw) < 10:
+                dd.append('.')
+                dw.append('.')
+            ans[i] = dd + dw
+    else:
+        ans = [['.' for j in range(20)]]
     return ans
 
 def splitData(string):
