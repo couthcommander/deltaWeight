@@ -10,11 +10,11 @@ from datetime import datetime
 
 class Counter():
     def __init__(self):
-        self.count=0
+        self.count = 0
 
     def add(self):
-        self.count+=1
-        if not self.count % pow(10, 4):
+        self.count += 1
+        if not self.count % 10000:
             print "\r" + str(self.count),
 
 class Nothing():
@@ -56,16 +56,12 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("inputfile", help='delimited file with format ID,DATE,WEIGHT,ETC')
     parser.add_argument("outputfile")
-    parser.add_argument("-d", "--delimiter", help='file delimiter, defaults to ","')
-    parser.add_argument("-m", "--missing", help='missing value, defaults to "."')
+    parser.add_argument("-d", "--delimiter", help='file delimiter, defaults to ","', default=',')
+    parser.add_argument("-m", "--missing", help='missing value, defaults to "."', default='.')
     parser.add_argument("--nocount", help='turn counter off', action='store_true')
     args = parser.parse_args()
     delim = args.delimiter
     missing = args.missing
-    if delim is None:
-        delim = ','
-    if missing is None:
-        missing = '.'
     infile = open(args.inputfile)
     outfile = open(args.outputfile, 'w')
     timepoints = 10

@@ -4,4 +4,6 @@ Generate test data set with R:
 
 Run python script:
 
-`python deltaWeight.py weightFile.csv zzWeight.csv`
+`python checkWeight.py weightFile.csv weightFile2.csv -lb 100 -ub 270`
+
+`python deltaWeight.py weightFile2.csv weightFile3.csv`
