@@ -59,15 +59,19 @@ if __name__=='__main__':
     parser.add_argument("-d", "--delimiter", help='file delimiter, defaults to ","', default=',')
     parser.add_argument("-m", "--missing", help='missing value, defaults to "."', default='.')
     parser.add_argument("--nocount", help='turn counter off', action='store_true')
+    parser.add_argument("--long", help='output in long format', action='store_true')
     args = parser.parse_args()
     delim = args.delimiter
     missing = args.missing
     infile = open(args.inputfile)
     outfile = open(args.outputfile, 'w')
     timepoints = 10
-    dt = ["deltaT_%s" % (i) for i in range(1, timepoints+1)]
-    dw = ["deltaW_%s" % (i) for i in range(1, timepoints+1)]
-    header = delim.join([infile.readline().rstrip()] + dt + dw)
+    if args.long:
+        header = delim.join([infile.readline().rstrip()] + ["deltaT", "deltaW", "measurement"])
+    else:
+        dt = ["deltaT_%s" % (i) for i in range(1, timepoints+1)]
+        dw = ["deltaW_%s" % (i) for i in range(1, timepoints+1)]
+        header = delim.join([infile.readline().rstrip()] + dt + dw)
     outfile.write(header+"\n")
     if args.nocount:
         cnt = Nothing()
@@ -83,7 +87,13 @@ if __name__=='__main__':
         if curid is not None and curid != uid:
             ans = deltas(d, w, missing)
             for i in range(len(out)):
-                outfile.write(delim.join([out[i]] + ans[i]) + "\n")
+                if args.long:
+                    for j in range(timepoints):
+                        dt = ans[i][j]
+                        dw = ans[i][j+timepoints]
+                        outfile.write(delim.join([out[i]] + [dt, dw, str(j+1)]) + "\n")
+                else:
+                    outfile.write(delim.join([out[i]] + ans[i]) + "\n")
             d = [date]
             w = [weight]
             out = [line]
@@ -97,6 +107,12 @@ if __name__=='__main__':
     if len(out):
         ans = deltas(d, w, missing)
         for i in range(len(out)):
-            outfile.write(delim.join([out[i]] + ans[i]) + "\n")
+            if args.long:
+                for j in range(timepoints):
+                    dt = ans[i][j]
+                    dw = ans[i][j+timepoints]
+                    outfile.write(delim.join([out[i]] + [dt, dw, str(j+1)]) + "\n")
+            else:
+                outfile.write(delim.join([out[i]] + ans[i]) + "\n")
     infile.close()
     outfile.close()
