@@ -24,7 +24,7 @@ class Nothing():
     def add(self):
         pass
 
-def deltas(dates, weights, m):
+def deltas(dates, weights, m, tp):
     n = len(dates)
     ans = [None for j in range(n)]
     if n > 1:
@@ -35,14 +35,14 @@ def deltas(dates, weights, m):
             myw.pop(i)
             temp = sorted(zip(dist, myw), key=lambda x: abs(x[0]))
             dd, dw = map(list, zip(*temp))
-            dd = [str(j) for j in dd[0:10]]
-            dw = [str(j) for j in dw[0:10]]
-            while len(dw) < 10:
+            dd = [str(j) for j in dd[0:tp]]
+            dw = [str(j) for j in dw[0:tp]]
+            while len(dw) < tp:
                 dd.append(m)
                 dw.append(m)
             ans[i] = dd + dw
     else:
-        ans = [[m for j in range(20)]]
+        ans = [[m for j in range(tp*2)]]
     return ans
 
 def splitData(string, d):
@@ -56,6 +56,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("inputfile", help='delimited file with format ID,DATE,WEIGHT,ETC')
     parser.add_argument("outputfile")
+    parser.add_argument("-t", "--timepoints", help='number of time points to calculate, defaults to 10', default=10, type=int)
     parser.add_argument("-d", "--delimiter", help='file delimiter, defaults to ","', default=',')
     parser.add_argument("-m", "--missing", help='missing value, defaults to "."', default='.')
     parser.add_argument("--nocount", help='turn counter off', action='store_true')
@@ -65,7 +66,10 @@ if __name__=='__main__':
     missing = args.missing
     infile = open(args.inputfile)
     outfile = open(args.outputfile, 'w')
-    timepoints = 10
+    timepoints = args.timepoints
+    if timepoints < 1:
+        print 'timepoints must be 1 or greater'
+        sys.exit(1)
     if args.long:
         header = delim.join([infile.readline().rstrip()] + ["deltaT", "deltaW", "measurement"])
     else:
@@ -85,7 +89,7 @@ if __name__=='__main__':
     while len(line) > 1:
         (uid, date, weight) = splitData(line, delim)
         if curid is not None and curid != uid:
-            ans = deltas(d, w, missing)
+            ans = deltas(d, w, missing, timepoints)
             for i in range(len(out)):
                 if args.long:
                     for j in range(timepoints):
@@ -105,7 +109,7 @@ if __name__=='__main__':
         line = infile.readline().rstrip()
         cnt.add()
     if len(out):
-        ans = deltas(d, w, missing)
+        ans = deltas(d, w, missing, timepoints)
         for i in range(len(out)):
             if args.long:
                 for j in range(timepoints):
