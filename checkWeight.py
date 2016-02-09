@@ -1,13 +1,12 @@
 import sys
 import argparse
-import os.path
-from datetime import datetime
 
-# weight file should guarantee first three columns as
-# 1) id
-# 2) date YYYY-MM-DD
-# 3) weight
-# and should be ordered by id
+# weight file should guarantee first four columns as
+# 1) ValueID (numeric)
+# 2) PatientID (numeric)
+# 3) Date (yyyy-mm-dd)
+# 4) Value (raw weight or other value from EHR)
+# and should be ordered by PatientID, Date, Value
 
 class Counter():
     def __init__(self):
@@ -25,82 +24,81 @@ class Nothing():
     def add(self):
         pass
 
-def checkData(string, d, lb, ub, conv):
-    line = string.split(d, 3)
+def readPatient(filename, d, bnd):
+    fh = open(filename)
+    # remove header
+    fh.readline()
+    ids = {}
+    for line in fh:
+        (pid, sid) = line.rstrip().split(d, 1)
+        if sid not in bnd:
+            print "StrataID [%s] does not exist" % (sid)
+            sys.exit(-1)
+        ids[pid] = sid
+    fh.close()
+    return ids
+
+def readStrata(filename, d):
+    fh = open(filename)
+    # remove header
+    fh.readline()
+    bounds = {}
+    for line in fh:
+        (label, lb, ub) = line.rstrip().split(d, 2)
+        try:
+            bounds[label] = [float(lb), float(ub)]
+        except ValueError:
+            print "non-numeric value [%s, %s] given for lower/upper bound on strata [%s]" % (lb, ub, label)
+            sys.exit(-1)
+    fh.close()
+    return bounds
+
+def testBounds(val, lb, ub):
     try:
-        mydate = datetime.strptime(line[1], '%Y-%m-%d').date()
+        myweight = float(val)
     except ValueError:
-        return [string, 'date']
-    try:
-        myweight = float(line[2])
-    except ValueError:
-        return [string, 'numeric']
-    fail = None
+        return 'numeric'
     if myweight < lb:
-        fail = 'lower'
+        return 'lower'
     if myweight > ub:
-        fail = 'upper'
-    if conv is not None:
-        if fail is not None:
-            myweight = myweight * conv
-            if myweight < lb or myweight > ub:
-                return [string, fail]
-            line[2] = str(myweight)
-            string = d.join(line + ["1"])
-        else:
-            string = string + d + "0"
-    elif fail is not None:
-        return [string, fail]
-    return [string, '']
+        return 'upper'
+    return None
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("inputfile", help='delimited file with format ID,DATE,WEIGHT,ETC')
+    parser.add_argument("datafile", help='delimited file with format ValueID,PatientID,Date,Value,ETC')
+    parser.add_argument("stratafile", help='delimited file with format PatientID,StrataID')
+    parser.add_argument("stratabounds", help='delimited file with format StrataID,LowerBound,UpperBound')
     parser.add_argument("outputfile")
-    parser.add_argument("-lb", "--lowerbound", help="lower bound for weight, defaults to 0", default=0, type=float)
-    parser.add_argument("-ub", "--upperbound", help="upper bound for weight, defaults to 1000", default=1000, type=float)
-    parser.add_argument("-c", "--conversion", help="unit conversion multiplier", type=float)
     parser.add_argument("-d", "--delimiter", help='file delimiter, defaults to ","', default=',')
     parser.add_argument("--nocount", help='turn counter off', action='store_true')
     args = parser.parse_args()
-    lb = args.lowerbound
-    ub = args.upperbound
-    conv = args.conversion
     delim = args.delimiter
-    infile = open(args.inputfile)
+    # read external boundaries
+    bounds = readStrata(args.stratabounds, delim)
+    # read strata ids
+    ids = readPatient(args.stratafile, delim, bounds.keys())
+    infile = open(args.datafile)
     outfile = open(args.outputfile, 'w')
     header = infile.readline().rstrip()
-    if conv is not None:
-        header = header + delim + "converted"
     outfile.write(header+"\n")
-    # create four error files
-    (oname, oext) = os.path.splitext(args.outputfile)
-    errDate = open(oname + "_dateErr" + oext, 'w')
-    errNumeric = open(oname + "_numericErr" + oext, 'w')
-    errLower = open(oname + "_lowerErr" + oext, 'w')
-    errUpper = open(oname + "_upperErr" + oext, 'w')
+    errBounds = open('Recoverable2.csv', 'w')
+    errBounds.write(header+"\n")
     if args.nocount:
         cnt = Nothing()
     else:
         cnt = Counter()
     line = infile.readline().rstrip()
     while len(line) > 1:
-        (line, err) = checkData(line, delim, lb, ub, conv)
-        if err == 'date':
-            errDate.write(line + "\n")
-        elif err == 'numeric':
-            errNumeric.write(line + "\n")
-        elif err == 'lower':
-            errLower.write(line + "\n")
-        elif err == 'upper':
-            errUpper.write(line + "\n")
-        else:
+        dat = line.split(delim)
+        (lb, ub) = bounds[ids[dat[1]]]
+        err = testBounds(dat[3], lb, ub)
+        if err is None:
             outfile.write(line + "\n")
+        else:
+            errBounds.write(line + "\n")
         line = infile.readline().rstrip()
         cnt.add()
     infile.close()
     outfile.close()
-    errDate.close()
-    errNumeric.close()
-    errLower.close()
-    errUpper.close()
+    errBounds.close()

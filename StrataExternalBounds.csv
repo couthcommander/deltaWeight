@@ -1,0 +1,4 @@
+StrataID,LowerBound,UpperBound
+small,90,170
+medium,145,235
+large,200,300
