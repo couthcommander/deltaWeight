@@ -25,10 +25,9 @@ class Nothing():
     def add(self):
         pass
 
-def deltas(dates, weights, m, tp=None, ts=None):
+def deltas(dates, weights, myline, fh, m, d, tp=None, ts=None, wide=False):
     n = len(dates)
     if n > 1:
-        ans = [None for j in range(n)]
         for i in range(n):
             dist = [(dates[j] - dates[i]).days for j in range(n)]
             myw = [weights[j] - weights[i] for j in range(n)]
@@ -51,12 +50,20 @@ def deltas(dates, weights, m, tp=None, ts=None):
                 while len(dw) < tp:
                     dd.append(m)
                     dw.append(m)
-            ans[i] = dw + dd
+            if wide:
+                fh.write(d.join([myline[i]] + dw + dd) + "\n")
+            else:
+                for j in range(len(dd)):
+                    fh.write(d.join([myline[i]] + [dw[j], dd[j], str(j+1)]) + "\n")
     else:
         if tp is None:
             tp = 1
-        ans = [[m for j in range(tp*2)]]
-    return ans
+        if wide:
+            ans = [m for j in range(tp)]
+            fh.write(d.join([myline[0]] + ans + ans) + "\n")
+        else:
+            for j in range(tp):
+                fh.write(d.join([myline[0]] + [m, m, str(j+1)]) + "\n")
 
 def splitData(string, d):
     line = string.split(d)
@@ -110,16 +117,7 @@ if __name__=='__main__':
     while len(line) > 1:
         (uid, date, weight) = splitData(line, delim)
         if curid is not None and curid != uid:
-            ans = deltas(d, w, missing, timepoints, timespan)
-            for i in range(len(out)):
-                if wideformat:
-                    outfile.write(delim.join([out[i]] + ans[i]) + "\n")
-                else:
-                    nr = len(ans[i])/2
-                    for j in range(nr):
-                        dw = ans[i][j]
-                        dt = ans[i][j+nr]
-                        outfile.write(delim.join([out[i]] + [dw, dt, str(j+1)]) + "\n")
+            deltas(d, w, out, outfile, missing, delim, timepoints, timespan, wideformat)
             d = [date]
             w = [weight]
             out = [line]
@@ -131,15 +129,6 @@ if __name__=='__main__':
         line = infile.readline().rstrip()
         cnt.add()
     if len(out):
-        ans = deltas(d, w, missing, timepoints, timespan)
-        for i in range(len(out)):
-            if wideformat:
-                outfile.write(delim.join([out[i]] + ans[i]) + "\n")
-            else:
-                nr = len(ans[i])/2
-                for j in range(nr):
-                    dw = ans[i][j]
-                    dt = ans[i][j+nr]
-                    outfile.write(delim.join([out[i]] + [dw, dt, str(j+1)]) + "\n")
+        deltas(d, w, out, outfile, missing, delim, timepoints, timespan, wideformat)
     infile.close()
     outfile.close()
